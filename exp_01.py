@@ -23,6 +23,7 @@ def extract_info():
     """ Prints/logs certain record elements.
         The ```utf8_handling='ignore'``` is required to avoid a unicode-error.
         """
+    log.debug( 'processing file, ``{}```'.format(big_marc_filepath) )
     with open( big_marc_filepath, 'rb' ) as fh:
         reader = pymarc.MARCReader( fh, force_utf8=True, utf8_handling='ignore' )  # w/o 'ignore', this line generates a unicode-error
         start = datetime.datetime.now()
