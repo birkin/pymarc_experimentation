@@ -64,7 +64,7 @@ def extract_info():
             try:
                 count+=1
                 if count % 10000 == 0:
-                    print( '`{}` records counted'.format(count) )
+                    print( '`{}` records processed'.format(count) )
                 # if count > 100000:
                 #     break
             except Exception as e:
