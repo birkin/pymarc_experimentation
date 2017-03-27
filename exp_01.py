@@ -10,6 +10,11 @@ config_dct['loggers']['pymarc_experimentation']['level'] = os.environ['PYMARC_EX
 logging.config.dictConfig( config_dct )
 log.debug( 'logging ready' )
 
+# existing_logger_names = logging.getLogger().manager.loggerDict.keys()
+# print( '- EXISTING_LOGGER_NAMES, `%s`' % existing_logger_names )
+logging.getLogger('pymarc').setLevel( logging.WARNING )
+logging.getLogger('TerminalIPythonApp').setLevel( logging.WARNING )
+
 
 big_marc_filepath = os.environ['PYMARC_EXP__BIG_MARC_FILEPATH']
 
@@ -60,8 +65,8 @@ def extract_info():
                 count+=1
                 if count % 10000 == 0:
                     print( '`{}` records counted'.format(count) )
-                if count > 10000:
-                    break
+                # if count > 100000:
+                #     break
             except Exception as e:
                 log.debug( 'exception on record ```{rec}```; error, ```{err}```'.format(rec=record, err=e) )
     end = datetime.datetime.now()
