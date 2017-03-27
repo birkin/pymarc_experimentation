@@ -14,6 +14,61 @@ log.debug( 'logging ready' )
 big_marc_filepath = os.environ['PYMARC_EXP__BIG_MARC_FILEPATH']
 
 
+def extract_info():
+    """ Prints/logs certain record elements.
+        The ```utf8_handling='ignore'``` is required to avoid a unicode-error.
+        """
+    with open( big_marc_filepath, 'rb' ) as fh:
+        reader = pymarc.MARCReader( fh, force_utf8=True, utf8_handling='ignore' )  # w/o 'ignore', this line generates a unicode-error
+        start = datetime.datetime.now()
+        count = 0
+        for record in reader:
+            record.force_utf8 = True
+            record_dct = record.as_dict()
+            fields = record_dct['fields']
+            ##
+            title = record.title()
+            ##
+            bib_id = 'not_available'
+            item_id = 'not_available'
+            record_dct_logged = False
+            for field_dct in fields:
+                for (k, val_dct) in field_dct.items():
+                    if k == '907':
+                        try:
+                            bib_id = val_dct['subfields'][0]['a'][0:9]
+                        except Exception as e:
+                            log.debug( 'exception getting bib_id, ``{}```'.format(e) )
+                            log.debug( 'record_dct, ```{}```'.format( pprint.pformat(record_dct) ) )
+                            record_dct_logged = True
+                    if k == '945':
+                        try:
+                            subfields = val_dct['subfields']
+                            for subfield_dct in subfields:
+                                for (k2, val2) in subfield_dct.items():
+                                    if k2 == 'y':
+                                        item_id = val2
+                        except Exception as f:
+                            log.debug( 'exception getting item_id, ``{}```'.format(f) )
+                            if record_dct_logged is False:
+                                log.debug( 'record_dct, ```{}```'.format( pprint.pformat(record_dct) ) )
+            basic_info = {
+                'title': record.title(), 'bib_id': bib_id, 'item_id': item_id }
+            # print( 'bas   ic_info, ```{}```'.format( pprint.pformat(basic_info) ) )
+            log.debug( 'basic_info, ```{}```'.format( pprint.pformat(basic_info) ) )
+            try:
+                count+=1
+                if count % 10000 == 0:
+                    print( '`{}` records counted'.format(count) )
+                if count > 10000:
+                    break
+            except Exception as e:
+                log.debug( 'exception on record ```{rec}```; error, ```{err}```'.format(rec=record, err=e) )
+    end = datetime.datetime.now()
+    log.debug( 'count of records in file, `{}`'.format(count) )
+    log.debug( 'time_taken, `{}`'.format(end-start) )
+
+
 def count_records():
     """ Counts records in marc file.
         Uses iterator so as not to have to store a huge amount of data in memory (as enclosing the reader in a list would).
