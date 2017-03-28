@@ -25,9 +25,10 @@ class Extractor( object ):
         self.marc_filepath = os.environ['PYMARC_EXP__BIG_MARC_FILEPATH']
         log.debug( 'processing file, ``{}```'.format(self.marc_filepath) )
         self.count = 0
-        self.title = 'not_available'
-        self.bib_id = 'not_available'
-        self.item_id = 'not_available'
+        self.title = 'init'
+        self.bib_id = 'init'
+        self.item_id = 'init'
+        self.record_dct = 'init'
         self.record_dct_logged = False
 
     def extract_info( self ):
@@ -38,9 +39,9 @@ class Extractor( object ):
         with open( self.marc_filepath, 'rb' ) as fh:
             reader = pymarc.MARCReader( fh, force_utf8=True, utf8_handling='ignore' )  # w/o 'ignore', this line generates a unicode-error
             for record in reader:
-                ( fields, record_dct ) = self.setup_main_loop( record )
-                for field_dct in fields:
-                    self.find_bib_and_item( field_dct, record_dct )
+                self.setup_main_loop( record )  # updates instance vars
+                for field_dct in self.record_dct['fields']:
+                    self.find_bib_and_item( field_dct )
                 self.log_basic_info()
                 self.update_count()
                 # if count > 3: break
@@ -49,27 +50,25 @@ class Extractor( object ):
     def setup_main_loop( self, record ):
         """ Initializes main processing loop.
             Called by extract_info() """
+        record.force_utf8 = True
         self.title = record.title()
         self.bib_id = 'not_available'
         self.item_id = 'not_available'
         self.record_dct_logged = False
-        record.force_utf8 = True
-        record_dct = record.as_dict()
-        fields = record_dct['fields']
-        return_tpl = ( fields, record_dct )
-        log.debug( 'return_tpl ( fields, record_dct ), ```{}```'.format(return_tpl) )
-        return return_tpl
+        self.record_dct = record.as_dict()
+        log.debug( 'self.record_dct, ```{}```'.format(self.record_dct) )
+        return
 
-    def find_bib_and_item( self, field_dct, record_dct ):
+    def find_bib_and_item( self, field_dct ):
         """ Extracts bib_id and item_id.
             Called by extract_info() """
         for (k, val_dct) in field_dct.items():
             log.debug( 'k, `{k}`; val_dct, ```{v}```'.format( k=k, v=pprint.pformat(val_dct) ) )
-            self.extract_bib( k, val_dct, record_dct )
-            self.extract_item( k, val_dct, record_dct )
+            self.extract_bib( k, val_dct )
+            self.extract_item( k, val_dct )
         return
 
-    def extract_bib( self, k, val_dct, record_dct ):
+    def extract_bib( self, k, val_dct ):
         """ Checks for bib.
             Called by find_bib_and_item() """
         if k == '907':
@@ -77,11 +76,11 @@ class Extractor( object ):
                 self.bib_id = val_dct['subfields'][0]['a'][0:9]
             except Exception as e:
                 log.debug( 'exception getting bib_id, ``{}```'.format(e) )
-                log.debug( 'record_dct, ```{}```'.format( pprint.pformat(record_dct) ) )
+                log.debug( 'record_dct, ```{}```'.format( pprint.pformat(self.record_dct) ) )
                 self.record_dct_logged = True
         return
 
-    def extract_item( self, k, val_dct, record_dct ):
+    def extract_item( self, k, val_dct ):
         """ Checks for item_id.
             Called by find_bib_and_item() """
         if k == '945':
@@ -94,7 +93,7 @@ class Extractor( object ):
             except Exception as f:
                 log.debug( 'exception getting item_id, ``{}```'.format(f) )
                 if self.record_dct_logged is False:
-                    log.debug( 'record_dct, ```{}```'.format( pprint.pformat(record_dct) ) )
+                    log.debug( 'record_dct, ```{}```'.format( pprint.pformat(self.record_dct) ) )
         return
 
     def log_basic_info( self ):
