@@ -111,9 +111,9 @@ class Extractor( object ):
     ## end class Extractor()
 
 
-####################################
-## experientation functions below ##
-####################################
+#####################################
+## experimentation functions below ##
+#####################################
 
 
 def break_up_record():
@@ -130,7 +130,7 @@ def break_up_record():
         # reader = pymarc.MARCReader( input_fh, force_utf8=True, utf8_handling='ignore' )
         # reader = pymarc.MARCReader( input_fh )
         # reader = pymarc.MARCReader( input_fh, to_unicode=True )
-        reader = pymarc.MARCReader( input_fh, to_unicode=True, utf8_handling='ignore' )
+        reader = pymarc.MARCReader( input_fh, to_unicode=True, utf8_handling='ignore' )  # works!
 
         with open( SMALLER_OUTPUT_FILEPATH, 'wb' ) as output_fh:
             writer = pymarc.MARCWriter( output_fh )
@@ -140,19 +140,14 @@ def break_up_record():
                 count += 1
                 if count % 10000 == 0:
                     print( '`{}` records processed'.format(count) )
-                # if count > 5:
-                #     break
+                if count > 10:
+                    break
 
     end = datetime.datetime.now()
     log.debug( 'records processed, `{}`'.format(count) )
     log.debug( 'time_taken, `{}`'.format(end-start) )
 
     ## end def break_up_record()
-
-
-
-
-
 
 
 def extract_info():
