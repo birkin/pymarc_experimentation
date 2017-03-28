@@ -15,9 +15,6 @@ logging.getLogger('pymarc').setLevel( logging.WARNING )
 logging.getLogger('TerminalIPythonApp').setLevel( logging.WARNING )
 
 
-big_marc_filepath = os.environ['PYMARC_EXP__BIG_MARC_FILEPATH']
-
-
 class Extractor( object ):
     """ Manages extraction of info from records in a marc file. """
 
@@ -114,12 +111,55 @@ class Extractor( object ):
     ## end class Extractor()
 
 
+####################################
+## experientation functions below ##
+####################################
+
+
+def break_up_record():
+    """ Splits big marc file into smaller files. """
+    BIG_MARC_FILEPATH = os.environ['PYMARC_EXP__BIG_MARC_FILEPATH']
+    SMALLER_OUTPUT_FILEPATH = os.environ['PYMARC_EXP__SMALLER_OUTPUT_MARC_FILEPATH']
+    log.debug( 'processing file, ``{}```'.format(BIG_MARC_FILEPATH) )
+    log.debug( 'output file, ``{}```'.format(SMALLER_OUTPUT_FILEPATH) )
+
+    start = datetime.datetime.now()
+    count = 0
+
+    with open( BIG_MARC_FILEPATH, 'rb' ) as input_fh:
+        # reader = pymarc.MARCReader( input_fh, force_utf8=True, utf8_handling='ignore' )
+        # reader = pymarc.MARCReader( input_fh )
+        # reader = pymarc.MARCReader( input_fh, to_unicode=True )
+        reader = pymarc.MARCReader( input_fh, to_unicode=True, utf8_handling='ignore' )
+
+        with open( SMALLER_OUTPUT_FILEPATH, 'wb' ) as output_fh:
+            writer = pymarc.MARCWriter( output_fh )
+
+            for record in reader:
+                writer.write( record )
+                count += 1
+                if count % 10000 == 0:
+                    print( '`{}` records processed'.format(count) )
+                # if count > 5:
+                #     break
+
+    end = datetime.datetime.now()
+    log.debug( 'records processed, `{}`'.format(count) )
+    log.debug( 'time_taken, `{}`'.format(end-start) )
+
+    ## end def break_up_record()
+
+
+
+
+
 
 
 def extract_info():
     """ Prints/logs certain record elements.
         The ```utf8_handling='ignore'``` is required to avoid a unicode-error.
         """
+    big_marc_filepath = os.environ['PYMARC_EXP__BIG_MARC_FILEPATH']
     log.debug( 'processing file, ``{}```'.format(big_marc_filepath) )
     with open( big_marc_filepath, 'rb' ) as fh:
         reader = pymarc.MARCReader( fh, force_utf8=True, utf8_handling='ignore' )  # w/o 'ignore', this line generates a unicode-error
@@ -171,12 +211,15 @@ def extract_info():
     log.info( 'count of records in file, `{}`'.format(count) )
     log.info( 'time_taken, `{}`'.format(end-start) )
 
+    ## end def extract_info()
+
 
 def count_records():
     """ Counts records in marc file.
         Uses iterator so as not to have to store a huge amount of data in memory (as enclosing the reader in a list would).
         The ```utf8_handling='ignore'``` is required to avoid a unicode-error, so trapping the errant-record isn't possible this way.
         """
+    big_marc_filepath = os.environ['PYMARC_EXP__BIG_MARC_FILEPATH']
     with open( big_marc_filepath, 'rb' ) as fh:
         reader = pymarc.MARCReader( fh, force_utf8=True, utf8_handling='ignore' )  # w/o 'ignore', this line generates a unicode-error
         start = datetime.datetime.now()
