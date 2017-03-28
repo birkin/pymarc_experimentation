@@ -24,63 +24,64 @@ class Extractor( object ):
     def __init__( self ):
         self.marc_filepath = os.environ['PYMARC_EXP__BIG_MARC_FILEPATH']
         log.debug( 'processing file, ``{}```'.format(self.marc_filepath) )
+        self.count = 0
+        self.title = 'not_available'
+        self.bib_id = 'not_available'
+        self.item_id = 'not_available'
+        self.record_dct_logged = False
 
     def extract_info( self ):
         """ Prints/logs certain record elements.
             The ```utf8_handling='ignore'``` is required to avoid a unicode-error.
             """
-        ( start, count ) = ( datetime.datetime.now(), 0 )
-        with open( big_marc_filepath, 'rb' ) as fh:
+        start = datetime.datetime.now()
+        with open( self.marc_filepath, 'rb' ) as fh:
             reader = pymarc.MARCReader( fh, force_utf8=True, utf8_handling='ignore' )  # w/o 'ignore', this line generates a unicode-error
             for record in reader:
-                ( fields, title, bib_id, item_id, record_dct ) = self.setup_main_loop( record )
+                ( fields, record_dct ) = self.setup_main_loop( record )
                 for field_dct in fields:
-                    ( bib_id, item_id ) = self.find_bib_and_item( bib_id, item_id, field_dct, record_dct )
-                self.log_basic_info( title, bib_id, item_id )
-                count = self.update_count( count )
+                    self.find_bib_and_item( field_dct, record_dct )
+                self.log_basic_info()
+                self.update_count()
                 # if count > 3: break
-        log.info( 'count of records in file, `{count}`; time_taken, `{time}`'.format( count=count, time=datetime.datetime.now()-start ) )
+        log.info( 'count of records in file, `{count}`; time_taken, `{time}`'.format( count=self.count, time=datetime.datetime.now()-start ) )
 
     def setup_main_loop( self, record ):
         """ Initializes main processing loop.
             Called by extract_info() """
+        self.title = record.title()
+        self.bib_id = 'not_available'
+        self.item_id = 'not_available'
+        self.record_dct_logged = False
         record.force_utf8 = True
         record_dct = record.as_dict()
         fields = record_dct['fields']
-        title = record.title()
-        bib_id = 'not_available'
-        item_id = 'not_available'
-        return_tpl = ( fields, title, bib_id, item_id, record_dct )
-        log.debug( 'return_tpl ( fields, title, bib_id, item_id, record_dct ), ```{}```'.format(return_tpl) )
+        return_tpl = ( fields, record_dct )
+        log.debug( 'return_tpl ( fields, record_dct ), ```{}```'.format(return_tpl) )
         return return_tpl
 
-    def find_bib_and_item( self, bib_id, item_id, field_dct, record_dct ):
+    def find_bib_and_item( self, field_dct, record_dct ):
         """ Extracts bib_id and item_id.
             Called by extract_info() """
         for (k, val_dct) in field_dct.items():
-            log.debug( 'val_dct, ```{}```'.format( pprint.pformat(val_dct) ) )
-            ( bib_id, record_dct_logged ) = self.extract_bib( bib_id, k, val_dct, record_dct )
-            item_id = self.extract_item( item_id, k, val_dct, record_dct, record_dct_logged )
-        return_tpl = ( bib_id, item_id )
-        log.debug( 'return_tpl ( bib_id, item_id ), ```{}```'.format(return_tpl) )
-        return return_tpl
+            log.debug( 'k, `{k}`; val_dct, ```{v}```'.format( k=k, v=pprint.pformat(val_dct) ) )
+            self.extract_bib( k, val_dct, record_dct )
+            self.extract_item( k, val_dct, record_dct )
+        return
 
-    def extract_bib( self, bib_id, k, val_dct, record_dct ):
+    def extract_bib( self, k, val_dct, record_dct ):
         """ Checks for bib.
             Called by find_bib_and_item() """
-        record_dct_logged = False
         if k == '907':
             try:
-                bib_id = val_dct['subfields'][0]['a'][0:9]
+                self.bib_id = val_dct['subfields'][0]['a'][0:9]
             except Exception as e:
                 log.debug( 'exception getting bib_id, ``{}```'.format(e) )
                 log.debug( 'record_dct, ```{}```'.format( pprint.pformat(record_dct) ) )
-                record_dct_logged = True
-        return_tpl = ( bib_id, record_dct_logged )
-        # log.debug( 'return_tpl ( bib_id, record_dct_logged ), ```{}```'.format(return_tpl) )
-        return return_tpl
+                self.record_dct_logged = True
+        return
 
-    def extract_item( self, item_id, k, val_dct, record_dct, record_dct_logged ):
+    def extract_item( self, k, val_dct, record_dct ):
         """ Checks for item_id.
             Called by find_bib_and_item() """
         if k == '945':
@@ -88,27 +89,28 @@ class Extractor( object ):
                 subfields = val_dct['subfields']
                 for subfield_dct in subfields:
                     for (k2, val2) in subfield_dct.items():
-                        if k2 == 'y': item_id = val2
+                        if k2 == 'y':
+                            self.item_id = val2
             except Exception as f:
                 log.debug( 'exception getting item_id, ``{}```'.format(f) )
-                if record_dct_logged is False:
+                if self.record_dct_logged is False:
                     log.debug( 'record_dct, ```{}```'.format( pprint.pformat(record_dct) ) )
-        return item_id
+        return
 
-    def log_basic_info( self, title, bib_id, item_id ):
+    def log_basic_info( self ):
         """ Assembles & logs extracted info.
             Called by extract_info() """
-        basic_info = { 'title': title, 'bib_id': bib_id, 'item_id': item_id }
+        basic_info = { 'title': self.title, 'bib_id': self.bib_id, 'item_id': self.item_id }
         log.info( 'basic_info, ```{}```'.format( pprint.pformat(basic_info) ) )
         return
 
-    def update_count( self, count ):
+    def update_count( self ):
         """ Updates count and process-reporting.
             Called by extract_info() """
-        count+=1
-        if count % 10000 == 0:
-            print( '`{}` records processed'.format(count) )
-        return count
+        self.count+=1
+        if self.count % 10000 == 0:
+            print( '`{}` records processed'.format(self.count) )
+        return
 
     ## end class Extractor()
 
