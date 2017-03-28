@@ -117,7 +117,8 @@ class Extractor( object ):
 
 
 def break_up_record():
-    """ Splits big marc file into smaller files. """
+    """ Splits big marc file into smaller files.
+        This can successfully re-write the whole errant `rec_19.mrc` file. """
     BIG_MARC_FILEPATH = os.environ['PYMARC_EXP__BIG_MARC_FILEPATH']
     SMALLER_OUTPUT_FILEPATH = os.environ['PYMARC_EXP__SMALLER_OUTPUT_MARC_FILEPATH']
     log.debug( 'processing file, ``{}```'.format(BIG_MARC_FILEPATH) )
