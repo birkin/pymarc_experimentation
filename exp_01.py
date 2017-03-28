@@ -158,7 +158,7 @@ def extract_info():
             basic_info = {
                 'title': record.title(), 'bib_id': bib_id, 'item_id': item_id }
             # print( 'bas   ic_info, ```{}```'.format( pprint.pformat(basic_info) ) )
-            log.debug( 'basic_info, ```{}```'.format( pprint.pformat(basic_info) ) )
+            log.info( 'basic_info, ```{}```'.format( pprint.pformat(basic_info) ) )
             try:
                 count+=1
                 if count % 10000 == 0:
@@ -168,8 +168,8 @@ def extract_info():
             except Exception as e:
                 log.debug( 'exception on record ```{rec}```; error, ```{err}```'.format(rec=record, err=e) )
     end = datetime.datetime.now()
-    log.debug( 'count of records in file, `{}`'.format(count) )
-    log.debug( 'time_taken, `{}`'.format(end-start) )
+    log.info( 'count of records in file, `{}`'.format(count) )
+    log.info( 'time_taken, `{}`'.format(end-start) )
 
 
 def count_records():
