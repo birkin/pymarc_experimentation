@@ -116,15 +116,16 @@ class Extractor( object ):
 #####################################
 
 
-def break_up_record():
+def break_up_record( start_record=0, end_record=0 ):
     """ Splits big marc file into smaller files.
         This can successfully re-write the whole errant `rec_19.mrc` file. """
+    log.debug( 'start_record, `{st}`; end_record, `{en}`'.format( st=start_record, en=end_record ) )
     BIG_MARC_FILEPATH = os.environ['PYMARC_EXP__BIG_MARC_FILEPATH']
     SMALLER_OUTPUT_FILEPATH = os.environ['PYMARC_EXP__SMALLER_OUTPUT_MARC_FILEPATH']
     log.debug( 'processing file, ``{}```'.format(BIG_MARC_FILEPATH) )
     log.debug( 'output file, ``{}```'.format(SMALLER_OUTPUT_FILEPATH) )
 
-    start = datetime.datetime.now()
+    start_time = datetime.datetime.now()
     count = 0
 
     with open( BIG_MARC_FILEPATH, 'rb' ) as input_fh:
@@ -137,16 +138,17 @@ def break_up_record():
             writer = pymarc.MARCWriter( output_fh )
 
             for record in reader:
-                writer.write( record )
                 count += 1
                 if count % 10000 == 0:
                     print( '`{}` records processed'.format(count) )
-                if count > 10:
-                    break
+                if count >= start_record:
+                    writer.write( record )
+                    if count >= end_record:
+                        break
 
-    end = datetime.datetime.now()
+    end_time = datetime.datetime.now()
     log.debug( 'records processed, `{}`'.format(count) )
-    log.debug( 'time_taken, `{}`'.format(end-start) )
+    log.debug( 'time_taken, `{}`'.format(end_time-start_time) )
 
     ## end def break_up_record()
 
