@@ -2,7 +2,7 @@
 
 from __future__ import unicode_literals
 
-import datetime, json, logging, logging.config, os, pprint
+import datetime, json, logging, logging.config, os, pprint, sys, traceback
 import pymarc
 
 
@@ -129,30 +129,93 @@ def break_up_record( start_record=0, end_record=0 ):
 
     start_time = datetime.datetime.now()
     count = 0
+    last_record = 'init'
 
     with open( BIG_MARC_FILEPATH, 'rb' ) as input_fh:
         # reader = pymarc.MARCReader( input_fh, force_utf8=True, utf8_handling='ignore' )
         # reader = pymarc.MARCReader( input_fh )
         # reader = pymarc.MARCReader( input_fh, to_unicode=True )
-        reader = pymarc.MARCReader( input_fh, to_unicode=True, utf8_handling='ignore' )  # works!
+
+        # reader = pymarc.MARCReader( input_fh, to_unicode=True, utf8_handling='ignore' )  # works!
+        reader = pymarc.MARCReader( input_fh, to_unicode=True, force_utf8=True, utf8_handling='ignore' )
+        # reader = pymarc.MARCReader( input_fh, to_unicode=False, utf8_handling='ignore' )
 
         with open( SMALLER_OUTPUT_FILEPATH, 'wb' ) as output_fh:
             writer = pymarc.MARCWriter( output_fh )
 
-            for record in reader:
+
+            processing_flag = True
+            while processing_flag is True:
+                try:
+                    record = next(reader)
+                except Exception as e:
+                    record = None
+                    log.error( 'exception looping through records; ```{}```'.format( unicode(repr(e)) ) )
+                    log.error( 'e info, ```{}```'.format(e) )
+                    e_type, e_value, e_traceback = sys.exc_info()  # <http://stackoverflow.com/a/15890953>
+                    log.error( 'e_type, ```{}``'.format(e_type) )
+                    log.error( 'e_value, ```{}``'.format(e_value) )
+                    log.error( 'e_traceback, ```{}```'.format(e_traceback) )
+                    log.error( 'traceback info, ```{}```'.format( traceback.format_exc() ) )
+                    # log.error( 'current record, ```{}```'.format( record ) )
+                    log.error( 'current count, `{}`'.format(count) )
+                    # log.error( 'last_record, ```{}```'.format(last_record) )
+
+                last_record = record
                 count += 1
                 if count % 10000 == 0:
                     print( '`{}` records processed'.format(count) )
                 if count >= start_record:
-                    writer.write( record )
+                    log.debug( 'count, `{}`'.format(count) )
+                    if record:
+                        log.debug( 'count is, `{cnt}`, so will write record.as_json()[0:100], ```{rcd}```'.format( cnt=count, rcd=record.as_json()[0:100] ) )
+                        writer.write( record )
                     if count >= end_record:
-                        break
+                        processing_flag = False
+
 
     end_time = datetime.datetime.now()
     log.debug( 'records processed, `{}`'.format(count) )
     log.debug( 'time_taken, `{}`'.format(end_time-start_time) )
 
     ## end def break_up_record()
+
+
+# def break_up_record( start_record=0, end_record=0 ):
+#     """ Splits big marc file into smaller files.
+#         This can successfully re-write the whole errant `rec_19.mrc` file. """
+#     log.debug( 'start_record, `{st}`; end_record, `{en}`'.format( st=start_record, en=end_record ) )
+#     BIG_MARC_FILEPATH = os.environ['PYMARC_EXP__BIG_MARC_FILEPATH']
+#     SMALLER_OUTPUT_FILEPATH = os.environ['PYMARC_EXP__SMALLER_OUTPUT_MARC_FILEPATH']
+#     log.debug( 'processing file, ``{}```'.format(BIG_MARC_FILEPATH) )
+#     log.debug( 'output file, ``{}```'.format(SMALLER_OUTPUT_FILEPATH) )
+
+#     start_time = datetime.datetime.now()
+#     count = 0
+
+#     with open( BIG_MARC_FILEPATH, 'rb' ) as input_fh:
+#         # reader = pymarc.MARCReader( input_fh, force_utf8=True, utf8_handling='ignore' )
+#         # reader = pymarc.MARCReader( input_fh )
+#         # reader = pymarc.MARCReader( input_fh, to_unicode=True )
+#         reader = pymarc.MARCReader( input_fh, to_unicode=True, utf8_handling='ignore' )  # works!
+
+#         with open( SMALLER_OUTPUT_FILEPATH, 'wb' ) as output_fh:
+#             writer = pymarc.MARCWriter( output_fh )
+
+#             for record in reader:
+#                 count += 1
+#                 if count % 10000 == 0:
+#                     print( '`{}` records processed'.format(count) )
+#                 if count >= start_record:
+#                     writer.write( record )
+#                     if count >= end_record:
+#                         break
+
+#     end_time = datetime.datetime.now()
+#     log.debug( 'records processed, `{}`'.format(count) )
+#     log.debug( 'time_taken, `{}`'.format(end_time-start_time) )
+
+#     ## end def break_up_record()
 
 
 def extract_info():
@@ -246,25 +309,33 @@ def count_records_and_log_bad_record():
     with open( big_marc_filepath, 'rb' ) as fh:
         start = datetime.datetime.now()
         count = 0
-        reader = pymarc.MARCReader( fh, force_utf8=True, utf8_handling='ignore' )  # w/o 'ignore', this line can generate a unicode-error
-        while True:
+
+        reader = pymarc.MARCReader( fh, to_unicode=True, force_utf8=True, utf8_handling='ignore' )
+
+        last_record = 'init'
+        start_offset = 0
+        end_offset = 0
+        processing_flag = True
+        while processing_flag:
             try:
+                start_offset = fh.tell()
+                log.debug( 'new start_offset, `{}`'.format(start_offset) )
                 record = next( reader )
-                # log.debug( 'type(record), `{}`'.format( type(record) ) )
+                end_offset = fh.tell()
+                log.debug( 'new end_offset, `{}`'.format(end_offset) )
+                last_record = record
             except Exception as e:
-                log.debug( 'exception accessing record-number ```{count}```; error, ```{err}```'.format(count=count, err=e) )
-                try:
-                    log.debug( 'record, ```{}```'.format(record) )
-                    record_dct = record.as_dict()
-                    log.debug( 'record_dct, ```{}```'.format( pprint.pformat(record_dct) ) )
-                except Exception as f:
-                    log.debug( 'exception processing record-number ```{count}```; error, ```{err}```'.format(count=count, err=f) )
-                    continue
+                log.error( 'exception looping through records; ```{}```'.format( unicode(repr(e)) ) )
+                log.error( 'count, `{}`'.format(count) )
+                if last_record:
+                    log.error( 'last_record.as_json()[0:500], ```{}```'.format( last_record.as_json()[0:500] ) )
+                last_record = None
             count+=1
             if count % 10000 == 0:
                 print( '`{}` records counted'.format(count) )
-            # if count > 2:
-            #     break
+            # if count > 81222:
+            if count > 2:
+                processing_flag = False
     end = datetime.datetime.now()
     log.debug( 'count of records in file, `{}`'.format(count) )
     log.debug( 'time_taken, `{}`'.format(end-start) )
