@@ -315,14 +315,14 @@ def count_records_and_log_bad_record():
         last_record = 'init'
         start_offset = 0
         end_offset = 0
+        capture_flag = False  # for capturing problematic marc-records as strings
+        problem_string = 'init'
         processing_flag = True
         while processing_flag:
             try:
                 start_offset = fh.tell()
-                log.debug( 'new start_offset, `{}`'.format(start_offset) )
                 record = next( reader )
                 end_offset = fh.tell()
-                log.debug( 'new end_offset, `{}`'.format(end_offset) )
                 last_record = record
             except Exception as e:
                 log.error( 'exception looping through records; ```{}```'.format( unicode(repr(e)) ) )
@@ -330,11 +330,27 @@ def count_records_and_log_bad_record():
                 if last_record:
                     log.error( 'last_record.as_json()[0:500], ```{}```'.format( last_record.as_json()[0:500] ) )
                 last_record = None
+                log.debug( 'error start_offset, `{}`'.format(start_offset) )
+                log.debug( 'error end_offset, `{}`'.format(end_offset) )
             count+=1
             if count % 10000 == 0:
                 print( '`{}` records counted'.format(count) )
-            # if count > 81222:
-            if count > 2:
+            if count > 81219:
+                log.debug( 'start_offset, `{}`'.format(start_offset) )
+                log.debug( 'end_offset, `{}`'.format(end_offset) )
+                if start_offset == end_offset:  # means there was a problem
+                    capture_flag = True
+                if ( end_offset > start_offset ) and capture_flag is True:
+                    capture_flag = False
+                    bytes_to_read = end_offset - start_offset
+                    with open( big_marc_filepath, 'rb' ) as error_file_handler:
+                        error_file_handler.seek( start_offset )
+                        problem_string = error_file_handler.read( bytes_to_read )
+                        log.debug( 'type(problem_string), `{}`'.format(type(problem_string)) )
+                        u_problem_string = problem_string.decode( 'utf-8' )
+                        log.warning( 'problem_string, ```{}```'.format(u_problem_string) )
+
+            if count > 81222:
                 processing_flag = False
     end = datetime.datetime.now()
     log.debug( 'count of records in file, `{}`'.format(count) )
