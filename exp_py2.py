@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import unicode_literals
+
 import datetime, json, logging, logging.config, os, pprint
 import pymarc
 
@@ -219,7 +221,7 @@ def count_records():
         """
     big_marc_filepath = os.environ['PYMARC_EXP__BIG_MARC_FILEPATH']
     with open( big_marc_filepath, 'rb' ) as fh:
-        reader = pymarc.MARCReader( fh, force_utf8=True, utf8_handling='ignore' )  # w/o 'ignore', this line generates a unicode-error
+        reader = pymarc.MARCReader( fh, force_utf8=True, utf8_handling='ignore' )  # w/o 'ignore', this line can generate a unicode-error
         start = datetime.datetime.now()
         count = 0
         for record in reader:
@@ -237,23 +239,27 @@ def count_records():
 
 def count_records_and_log_bad_record():
     """ Traps bad utf8 records that a for-loop can't handle.
+        <https://github.com/edsu/pymarc/blob/master/test/reader.py>
         Under construction.
         """
+    big_marc_filepath = os.environ['PYMARC_EXP__BIG_MARC_FILEPATH']
     with open( big_marc_filepath, 'rb' ) as fh:
         start = datetime.datetime.now()
         count = 0
+        reader = pymarc.MARCReader( fh, force_utf8=True, utf8_handling='ignore' )  # w/o 'ignore', this line can generate a unicode-error
         while True:
             try:
-                record = fh.readline()  # byte, not unicode-string
+                record = next( reader )
+                # log.debug( 'type(record), `{}`'.format( type(record) ) )
             except Exception as e:
                 log.debug( 'exception accessing record-number ```{count}```; error, ```{err}```'.format(count=count, err=e) )
-                break
-            try:
-                record.decode( 'utf-8' )
-            except Exception as f:
-                log.debug( 'exception decoding record-number ```{count}```; error, ```{err}```'.format(count=count, err=f) )
-                log.debug( 'record, ```{}```'.format(record) )
-                break
+                try:
+                    log.debug( 'record, ```{}```'.format(record) )
+                    record_dct = record.as_dict()
+                    log.debug( 'record_dct, ```{}```'.format( pprint.pformat(record_dct) ) )
+                except Exception as f:
+                    log.debug( 'exception processing record-number ```{count}```; error, ```{err}```'.format(count=count, err=f) )
+                    continue
             count+=1
             if count % 10000 == 0:
                 print( '`{}` records counted'.format(count) )
@@ -262,3 +268,33 @@ def count_records_and_log_bad_record():
     end = datetime.datetime.now()
     log.debug( 'count of records in file, `{}`'.format(count) )
     log.debug( 'time_taken, `{}`'.format(end-start) )
+
+
+# def count_records_and_log_bad_record():
+#     """ Traps bad utf8 records that a for-loop can't handle.
+#         Under construction.
+#         """
+#     big_marc_filepath = os.environ['PYMARC_EXP__BIG_MARC_FILEPATH']
+#     with open( big_marc_filepath, 'rb' ) as fh:
+#         start = datetime.datetime.now()
+#         count = 0
+#         while True:
+#             try:
+#                 record = fh.readline()  # byte, not unicode-string
+#             except Exception as e:
+#                 log.debug( 'exception accessing record-number ```{count}```; error, ```{err}```'.format(count=count, err=e) )
+#                 continue
+#             try:
+#                 record.decode( 'utf-8' )
+#             except Exception as f:
+#                 log.debug( 'exception decoding record-number ```{count}```; error, ```{err}```'.format(count=count, err=f) )
+#                 log.debug( 'record, ```{}```'.format(record) )
+#                 continue
+#             count+=1
+#             if count % 10000 == 0:
+#                 print( '`{}` records counted'.format(count) )
+#             # if count > 2:
+#             #     break
+#     end = datetime.datetime.now()
+#     log.debug( 'count of records in file, `{}`'.format(count) )
+#     log.debug( 'time_taken, `{}`'.format(end-start) )
