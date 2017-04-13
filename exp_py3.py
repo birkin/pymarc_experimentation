@@ -254,10 +254,10 @@ def count_records_and_log_bad_record():
         last_good_tell = 0
         last_read_good = True
         segment_to_review = 'init'
-        reader = pymarc.MARCReader( fh )
-        # reader = pymarc.MARCReader( fh, utf8_handling='ignore' )
         # reader = pymarc.MARCReader( fh, to_unicode=True, force_utf8=True, utf8_handling='ignore' )
         # reader = pymarc.MARCReader( fh, force_utf8=True, utf8_handling='ignore' )
+        # reader = pymarc.MARCReader( fh, utf8_handling='ignore' )
+        reader = pymarc.MARCReader( fh )
         process_flag = True
         while process_flag is True:
             # log.debug( 'fh.tell(), `{}`'.format( fh.tell() ) )
