@@ -250,11 +250,12 @@ def count_records_and_log_bad_record():
         start = datetime.datetime.now()
         fh.seek( 0, 2 ); file_size = fh.tell(); fh.seek( 0 )
         log.debug( 'file_size(K), `{}`'.format( file_size/1024 ) )
-        count_processed = 0; count_good = 0; count_bad = 0
+        count_processed = 0; count_good = 0; count_bad = 0; count_segments_to_review = 0
         last_good_tell = 0
         last_read_good = True
         segment_to_review = 'init'
-        reader = pymarc.MARCReader( fh, force_utf8=True, utf8_handling='ignore' )  # w/o 'ignore', this line can generate a unicode-error
+        reader = pymarc.MARCReader( fh, to_unicode=True, force_utf8=True, utf8_handling='ignore' )  # w/o 'ignore', this line can generate a unicode-error
+        # reader = pymarc.MARCReader( fh, force_utf8=True, utf8_handling='ignore' )  # w/o 'ignore', this line can generate a unicode-error
         process_flag = True
         while process_flag is True:
             # log.debug( 'fh.tell(), `{}`'.format( fh.tell() ) )
@@ -266,13 +267,14 @@ def count_records_and_log_bad_record():
                     segment_to_review_byte_count = current_position - last_good_tell
                     fh.seek( last_good_tell )
                     segment_to_review = fh.read( segment_to_review_byte_count )
+                    count_segments_to_review += 1
                     log.debug( 'segment_to_review, ```{}```'.format(segment_to_review) )
                     fh.seek( current_position )
                 last_good_tell = fh.tell()
                 last_read_good = True
                 # log.debug( 'type(record), `{}`'.format( type(record) ) )
             except Exception as e:
-                log.error( 'exception accessing record-number ```{count}```; error, ```{err}```'.format(count=count_processed, err=e) )
+                log.error( 'exception accessing record-number ```{count}```; error, ```{err}```'.format(count=count_processed, err=repr(e) ) )
                 count_bad += 1
                 last_read_good = False
                 # try:
@@ -293,6 +295,7 @@ def count_records_and_log_bad_record():
     log.debug( 'count_processed, `{}`'.format(count_processed) )
     log.debug( 'count_good, `{}`'.format(count_good) )
     log.debug( 'count_bad, `{}`'.format(count_bad) )
+    log.debug( 'count_segments_to_review, `{}`'.format(count_segments_to_review) )
     log.debug( 'time_taken, `{}`'.format(end-start) )
 
 
