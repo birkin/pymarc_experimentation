@@ -254,8 +254,10 @@ def count_records_and_log_bad_record():
         last_good_tell = 0
         last_read_good = True
         segment_to_review = 'init'
-        reader = pymarc.MARCReader( fh, to_unicode=True, force_utf8=True, utf8_handling='ignore' )  # w/o 'ignore', this line can generate a unicode-error
-        # reader = pymarc.MARCReader( fh, force_utf8=True, utf8_handling='ignore' )  # w/o 'ignore', this line can generate a unicode-error
+        reader = pymarc.MARCReader( fh )
+        # reader = pymarc.MARCReader( fh, utf8_handling='ignore' )
+        # reader = pymarc.MARCReader( fh, to_unicode=True, force_utf8=True, utf8_handling='ignore' )
+        # reader = pymarc.MARCReader( fh, force_utf8=True, utf8_handling='ignore' )
         process_flag = True
         while process_flag is True:
             # log.debug( 'fh.tell(), `{}`'.format( fh.tell() ) )
@@ -274,7 +276,8 @@ def count_records_and_log_bad_record():
                 last_read_good = True
                 # log.debug( 'type(record), `{}`'.format( type(record) ) )
             except Exception as e:
-                log.error( 'exception accessing record-number ```{count}```; error, ```{err}```'.format(count=count_processed, err=repr(e) ) )
+                log.error( 'exception accessing record, ```{count}```; tell-count, ```{tell}```'.format(count=count_processed, tell=fh.tell() ) )
+                log.error( 'exception, ```{err}```'.format( err=repr(e) ) )
                 count_bad += 1
                 last_read_good = False
                 # try:
