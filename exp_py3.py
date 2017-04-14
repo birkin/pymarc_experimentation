@@ -280,13 +280,6 @@ def count_records_and_log_bad_record():
                 log.error( 'exception, ```{err}```'.format( err=repr(e) ) )
                 count_bad += 1
                 last_read_good = False
-                # try:
-                #     log.debug( 'record, ```{}```'.format(record) )
-                #     record_dct = record.as_dict()
-                #     log.debug( 'record_dct, ```{}```'.format( pprint.pformat(record_dct) ) )
-                # except Exception as f:
-                #     log.debug( 'exception processing record-number ```{count}```; error, ```{err}```'.format(count=count, err=f) )
-                #     continue
             if fh.tell() == file_size:
                 process_flag = False
             count_processed += 1
@@ -300,33 +293,3 @@ def count_records_and_log_bad_record():
     log.debug( 'count_bad, `{}`'.format(count_bad) )
     log.debug( 'count_segments_to_review, `{}`'.format(count_segments_to_review) )
     log.debug( 'time_taken, `{}`'.format(end-start) )
-
-
-# def count_records_and_log_bad_record():
-#     """ Traps bad utf8 records that a for-loop can't handle.
-#         Under construction.
-#         """
-#     big_marc_filepath = os.environ['PYMARC_EXP__BIG_MARC_FILEPATH']
-#     with open( big_marc_filepath, 'rb' ) as fh:
-#         start = datetime.datetime.now()
-#         count = 0
-#         while True:
-#             try:
-#                 record = fh.readline()  # byte, not unicode-string
-#             except Exception as e:
-#                 log.debug( 'exception accessing record-number ```{count}```; error, ```{err}```'.format(count=count, err=e) )
-#                 continue
-#             try:
-#                 record.decode( 'utf-8' )
-#             except Exception as f:
-#                 log.debug( 'exception decoding record-number ```{count}```; error, ```{err}```'.format(count=count, err=f) )
-#                 log.debug( 'record, ```{}```'.format(record) )
-#                 continue
-#             count+=1
-#             if count % 10000 == 0:
-#                 print( '`{}` records counted'.format(count) )
-#             # if count > 2:
-#             #     break
-#     end = datetime.datetime.now()
-#     log.debug( 'count of records in file, `{}`'.format(count) )
-#     log.debug( 'time_taken, `{}`'.format(end-start) )
